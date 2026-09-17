@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Shield Crest -->
+    <path
+        android:fillColor="#E8F5E9"
+        android:pathData="M54,23 L76,32.5 C76,57 65.5,73 54,83 C42.5,73 32,57 32,32.5 Z" />
+    <!-- Inner Shield Surface -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M54,27 L72,34.8 C72,55.5 63,69.5 54,78 C45,69.5 36,55.5 36,34.8 Z" />
+    <!-- Center Crop Leaf -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M54,34 C63,40 66,54 59,65 C55,61 54,54 54,49 C54,58 48,64 45,62 C42,52 46,38 54,34 Z" />
+    <!-- Leaf Stem / Pulse Axis -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M53.5,41 L54.5,41 L54.5,68 L53.5,68 Z" />
+    <!-- AI Scan Indicator Dots -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,34 A2.5,2.5 0 1,0 54,39 A2.5,2.5 0 1,0 54,34 Z" />
+    <path
+        android:fillColor="#C8E6C9"
+        android:pathData="M46,46 A2,2 0 1,0 46,50 A2,2 0 1,0 46,46 Z" />
+    <path
+        android:fillColor="#C8E6C9"
+        android:pathData="M62,46 A2,2 0 1,0 62,50 A2,2 0 1,0 62,46 Z" />
+</vector>

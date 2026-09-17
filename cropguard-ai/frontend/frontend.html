@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CROPGuard AI - Agricultural Diagnostic & Farm Advisory Portal</title>
+  
+  <!-- Leaflet Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <style>
+    :root {
+      --primary: #2E7D32;
+      --primary-dark: #1B5E20;
+      --primary-light: #E8F5E9;
+      --accent: #F57F17;
+      --danger: #C62828;
+      --warning: #E65100;
+      --info: #0288D1;
+      --bg: #F0F4F0;
+      --card-bg: #FFFFFF;
+      --text: #1B2E1B;
+      --text-muted: #536E53;
+      --border: #CFD8DC;
+      --radius: 14px;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 16px 12px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 820px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%);
+      color: white;
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: 0 6px 16px rgba(27, 94, 32, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .app-title {
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-subtitle {
+      font-size: 0.92rem;
+      opacity: 0.94;
+      line-height: 1.4;
+    }
+
+    .net-sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(4px);
+    }
+    .net-sync-badge.online { background: #E8F5E9; color: #1B5E20; }
+    .net-sync-badge.offline { background: #FFEBEE; color: #C62828; }
+    .net-sync-badge.syncing { background: #FFF3E0; color: #E65100; }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* Buttons */
+    button {
+      cursor: pointer;
+      min-height: 48px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 18px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background-color: var(--primary-dark); }
+    .btn-primary:active { transform: scale(0.98); }
+
+    .btn-secondary {
+      background-color: #ECEFF1;
+      color: #37474F;
+      border: 1px solid #CFD8DC;
+    }
+    .btn-secondary:hover { background-color: #CFD8DC; }
+
+    .btn-tts {
+      background-color: #E8F5E9;
+      color: var(--primary-dark);
+      border: 1px solid #C8E6C9;
+      font-size: 0.88rem;
+      padding: 8px 14px;
+      min-height: 40px;
+    }
+    .btn-tts:hover { background-color: #C8E6C9; }
+    .btn-tts.stop {
+      background-color: #FFEBEE;
+      color: var(--danger);
+      border-color: #FFCDD2;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    /* Form Inputs */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    select, input[type="text"], input[type="number"], textarea {
+      width: 100%;
+      min-height: 48px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      color: var(--text);
+      background-color: #FAFAFA;
+      transition: border-color 0.2s ease;
+    }
+    select:focus, input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      background-color: #FFFFFF;
+    }
+
+    /* Voice Assistant */
+    .voice-card {
+      background: linear-gradient(135deg, #F1F8E9 0%, #E8F5E9 100%);
+      border: 2px solid #C8E6C9;
+    }
+
+    .voice-btn-large {
+      width: 100%;
+      min-height: 56px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(27, 94, 32, 0.25);
+    }
+    .voice-btn-large.listening {
+      background: linear-gradient(135deg, #C62828 0%, #E53935 100%);
+      animation: micPulse 1.5s infinite;
+    }
+
+    @keyframes micPulse {
+      0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.6); }
+      70% { box-shadow: 0 0 0 16px rgba(229, 57, 53, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+    }
+
+    .transcript-box {
+      background: white;
+      border: 1.5px solid #C8E6C9;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 0.95rem;
+      color: #2E7D32;
+      min-height: 52px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .voice-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .voice-chip {
+      background: white;
+      border: 1px solid #A5D6A7;
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      color: #1B5E20;
+      cursor: pointer;
+    }
+
+    /* Multi-Image Upload Grid */
+    .multi-upload-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .image-slot {
+      aspect-ratio: 1;
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: #FAFAFA;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .image-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .image-slot .remove-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(198, 40, 40, 0.85);
+      color: white;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      min-height: 26px;
+      padding: 0;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .image-slot .slot-tag {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      right: 4px;
+      background: rgba(0, 0, 0, 0.65);
+      color: white;
+      font-size: 0.72rem;
+      padding: 2px 4px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    /* Gauge / Circular Meter */
+    .gauge-container {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      background: #F9FBE7;
+      border: 1.5px solid #DCE775;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .gauge-circle {
+      width: 110px;
+      height: 110px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .gauge-circle svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .gauge-circle circle {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+    }
+    .gauge-text {
+      position: absolute;
+      text-align: center;
+    }
+    .gauge-number {
+      font-size: 1.7rem;
+      font-weight: 900;
+      color: #1B5E20;
+    }
+    .gauge-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #558B2F;
+    }
+
+    /* Health Breakdown Grid */
+    .score-breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+      flex: 1;
+    }
+    .score-item {
+      background: white;
+      border: 1px solid #E0E0E0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+    }
+    .score-item-val {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #2E7D32;
+    }
+    .score-item-lbl {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Alert Boxes */
+    .alert {
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      display: none;
+      line-height: 1.4;
+    }
+    .alert.danger { background-color: #FFEBEE; color: var(--danger); border: 1px solid #FFCDD2; }
+    .alert.warning { background-color: #FFF3E0; color: var(--warning); border: 1px solid #FFE0B2; }
+    .alert.info { background-color: #E1F5FE; color: var(--info); border: 1px solid #B3E5FC; }
+
+    /* Timeline */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      padding-left: 20px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      background: #C8E6C9;
+    }
+    .timeline-node {
+      position: relative;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .timeline-node::before {
+      content: '';
+      position: absolute;
+      left: -19px;
+      top: 14px;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid white;
+    }
+
+    /* Support directory item */
+    .support-card-item {
+      background: #FAFAFA;
+      border: 1px solid #E0E0E0;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Mode selector */
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .mode-btn {
+      background: #ECEFF1;
+      border: 2px solid transparent;
+      padding: 8px;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      color: #37474F;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .mode-btn.selected {
+      background: #E8F5E9;
+      border-color: #2E7D32;
+      color: #1B5E20;
+      font-weight: 800;
+    }
+
+    #farmMap {
+      height: 250px;
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-top">
+      <div class="app-title">
+        <span>🌾</span> CROPGuard AI
+      </div>
+      <div id="netSyncBadge" class="net-sync-badge online">
+        <span>●</span> Online
+      </div>
+    </div>
+    <div class="header-subtitle" id="uiSubtitle">
+      AI-Powered Early Crop Disease & Pest Detection for Farmers
+    </div>
+  </header>
+
+  <!-- SECTION 18: REGIONAL LANGUAGE SELECTOR -->
+  <div class="card">
+    <div class="form-group">
+      <label for="languageSelect" id="uiLangLabel">🗣️ Select Language / மொழி / भाषा</label>
+      <select id="languageSelect" onchange="onLanguageChanged()">
+        <option value="en-IN" selected>English (Indian Agricultural Context)</option>
+        <option value="ta-IN">Tamil - தமிழ் (ta-IN)</option>
+        <option value="hi-IN">Hindi - हिन्दी (hi-IN)</option>
+        <option value="te-IN">Telugu - తెలుగు (te-IN)</option>
+        <option value="kn-IN">Kannada - ಕನ್ನಡ (kn-IN)</option>
+        <option value="ml-IN">Malayalam - മലയാളം (ml-IN)</option>
+        <option value="bn-IN">Bengali - বাংলা (bn-IN)</option>
+        <option value="mr-IN">Marathi - मराठी (mr-IN)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- SECTION 19: VOICE ASSISTANT -->
+  <div class="card voice-card" id="voiceCard">
+    <div class="card-title">
+      <span id="uiVoiceTitle">🎤 Voice Assistant</span>
+      <span class="badge" style="background:#C8E6C9; color:#1B5E20;">Ready</span>
+    </div>
+    <p style="font-size:0.88rem; color:#2E7D32;" id="uiVoiceSubtitle">
+      Speak commands naturally: "Check Tomato", "Scan Leaf", "Show Weather", "Help"
+    </p>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button type="button" class="voice-btn-large" id="btnVoiceAssistant" onclick="toggleVoiceAssistant()">
+        <span id="micIconSymbol">🎤</span>
+        <span id="uiVoiceBtnText">Start Listening</span>
+      </button>
+      <button type="button" class="btn-secondary" id="btnStopVoice" onclick="stopVoiceRecognition()" style="display:none;">
+        <span>⏹ Stop Listening</span>
+      </button>
+    </div>
+
+    <!-- Audio Output Controls -->
+    <div style="display:flex; gap:8px;">
+      <button type="button" class="btn-tts" id="voiceSpeakResultBtn" onclick="speakCurrentReport()">
+        <span id="uiVoiceSpeakResult">🔊 Speak Result</span>
+      </button>
+      <button type="button" class="btn-tts stop" onclick="stopSpeaking()">
+        <span>🔇 Stop</span>
+      </button>
+    </div>
+
+    <!-- Transcript Box -->
+    <div class="transcript-box">
+      <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700;">
+        <span id="uiYouSaid">You said:</span>
+        <span id="listeningIndicator" style="display:none; color:red;">● Listening...</span>
+      </div>
+      <div id="transcriptText" style="font-style:italic; color:#333;">"Press Start Listening and speak..."</div>
+      <div id="voiceFeedback" style="font-size:0.82rem; font-weight:700; color:#1B5E20;"></div>
+    </div>
+
+    <!-- Chips -->
+    <div class="voice-chips" id="voiceChipsRow">
+      <!-- Injected per language -->
+    </div>
+  </div>
+
+  <!-- SECTION 8: MY FARM DASHBOARD -->
+  <div class="card" id="farmDashboardCard">
+    <div class="card-title">
+      <span>🌾 <span id="uiFarmDashTitle">My Farm Dashboard</span></span>
+      <button class="btn-tts" onclick="toggleFarmEdit()">✏️ <span id="uiEditFarmBtn">Edit Farm</span></button>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+      <div class="score-item">
+        <span class="score-item-lbl" id="uiLblFarmName">Farm Name</span>
+        <strong id="dispFarmName" style="font-size:1.05rem; color:#1B5E20;">Green Acres Farm</strong>
+      </div>
+      <div class="score-item">
+        <span class="score-item-lbl" id="uiLblFarmCrop">Primary Crop & Variety</span>
+        <strong id="dispFarmCrop">Tomato (Arka Rakshak)</strong>
+      </div>
+      <div class="score-item">
+        <span class="score-item-lbl" id="uiLblFarmLoc">Location & Area</span>
+        <strong id="dispFarmLoc">Coimbatore • 2.5 Acres</strong>
+      </div>
+      <div class="score-item">
+        <span class="score-item-lbl" id="uiLblFarmHealth">Current Health Status</span>
+        <strong id="dispFarmHealth" style="color:#2E7D32;">Score: 78/100 (Moderate Risk)</strong>
+      </div>
+    </div>
+
+    <!-- Inline Farm Edit Modal / Form -->
+    <div id="farmEditForm" style="display:none; background:#F5F5F5; padding:12px; border-radius:8px; border:1px solid #DDD;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="form-group">
+          <label>Farm Name</label>
+          <input type="text" id="editFarmName" value="Green Acres Farm" />
+        </div>
+        <div class="form-group">
+          <label>Crop Variety</label>
+          <input type="text" id="editFarmVariety" value="Arka Rakshak (Hybrid)" />
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" id="editFarmLocation" value="Coimbatore, Tamil Nadu" />
+        </div>
+        <div class="form-group">
+          <label>Acreage / Area</label>
+          <input type="text" id="editFarmArea" value="2.5 Acres" />
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn-primary" style="padding:6px 14px; min-height:38px; font-size:0.9rem;" onclick="saveFarmDetails()">Save Farm</button>
+        <button class="btn-secondary" style="padding:6px 14px; min-height:38px; font-size:0.9rem;" onclick="toggleFarmEdit()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 14: MODEL MANAGEMENT -->
+  <div class="card">
+    <div class="card-title">
+      <span id="uiModelMgmtTitle">⚙️ AI Model Management</span>
+      <button class="btn-tts" onclick="checkBackendHealth()">🔄 <span id="uiCheckModelBtn">Check Status</span></button>
+    </div>
+
+    <div id="modelStatusBanner" style="background:#FFF3E0; border:1px solid #FFE0B2; padding:10px 12px; border-radius:8px; font-size:0.85rem;">
+      <strong>Offline AI Model:</strong> <span id="offlineModelStatusText">Checking model...</span><br/>
+      <span id="offlineModelNotice" style="color:#666;">Offline AI model is not connected yet. Install a compatible TensorFlow Lite or ONNX model to enable offline diagnosis.</span>
+    </div>
+
+    <div class="mode-grid">
+      <button type="button" class="mode-btn selected" id="modeBtnAuto" onclick="selectAIMode('auto')">
+        <span>🟢 Auto Mode</span>
+        <span style="font-size:0.72rem;">Offline First</span>
+      </button>
+      <button type="button" class="mode-btn" id="modeBtnOnline" onclick="selectAIMode('online')">
+        <span>🌐 Online AI</span>
+        <span style="font-size:0.72rem;">Gemini Vision</span>
+      </button>
+      <button type="button" class="mode-btn" id="modeBtnOffline" onclick="selectAIMode('offline')">
+        <span>📴 Offline Only</span>
+        <span style="font-size:0.72rem;">Local TFLite</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SECTION 4: MULTIPLE IMAGE UPLOAD (Up to 5 images) & CROP SELECTOR -->
+  <div class="card">
+    <div class="form-group">
+      <label for="cropSelect" id="uiCropLabel">Step 1: Select Crop</label>
+      <select id="cropSelect" onchange="onCropSelected()">
+        <option value="" disabled selected>-- Choose Supported Crop --</option>
+        <option value="Tomato">🍅 Tomato (தக்காளி / टमाटर)</option>
+        <option value="Potato">🥔 Potato (உருளை / आलू)</option>
+        <option value="Rice">🌾 Rice (நெல் / चावल / धान)</option>
+        <option value="Maize">🌽 Maize (மக்காச்சோளம் / मक्का)</option>
+        <option value="Wheat">🌾 Wheat (கோதுமை / गेहूं)</option>
+        <option value="Cotton">🌱 Cotton (பருத்தி / कपास)</option>
+        <option value="Chilli">🌶️ Chilli (மிளகாய் / मिर्च)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label id="uiUploadLabel">Step 2: Upload Photos (Up to 5 photos: Leaf, Stem, Fruit, Whole Plant)</label>
+      
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn-primary" style="flex:1;" onclick="triggerCameraCapture()">
+          <span>📷 Take Photo</span>
+        </button>
+        <button type="button" class="btn-secondary" style="flex:1;" onclick="triggerGalleryPicker()">
+          <span>🖼️ Choose From Gallery</span>
+        </button>
+      </div>
+
+      <!-- Hidden Native File Inputs -->
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFileSelected(event)" style="display:none;" />
+      <input type="file" id="galleryInput" accept="image/jpeg,image/png,image/webp" multiple onchange="handleFileSelected(event)" style="display:none;" />
+
+      <!-- Multi-image slots thumbnail container -->
+      <div class="multi-upload-grid" id="multiImageGrid">
+        <!-- Injected dynamically -->
+      </div>
+      <div id="imageCountNotice" style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">
+        0 of 5 photos uploaded. Combine leaf, stem, fruit, or plant views for higher diagnostic accuracy.
+      </div>
+    </div>
+
+    <!-- Backend Host Selector -->
+    <div class="form-group" style="margin-top: 4px;">
+      <label for="apiUrl" style="font-size: 0.8rem; color: var(--text-muted);">Backend Server URL</label>
+      <input type="text" id="apiUrl" value="http://localhost:8000" style="padding: 8px 12px; font-size: 0.88rem; min-height: 38px;" />
+    </div>
+
+    <!-- Run Diagnosis Button -->
+    <button type="button" class="btn-primary" id="analyzeBtn" onclick="runDiagnosis()">
+      <span id="uiAnalyzeBtnText">🔬 Run AI Crop Diagnosis</span>
+    </button>
+  </div>
+
+  <!-- Alert & Error Banners -->
+  <div class="alert danger" id="errorAlert"></div>
+  <div class="alert warning" id="warningAlert"></div>
+  <div class="alert info" id="infoAlert"></div>
+
+  <!-- =========================================================================
+       DIAGNOSTIC REPORT & STRUCTURED CARDS (Sections 1, 2, 3, 5, 6, 7, 11, 12, 15, 16, 24)
+       ========================================================================= -->
+  <div id="reportSection" style="display:none; flex-direction:column; gap:16px;">
+
+    <!-- CARD 1: 🌱 CROP HEALTH SCORE GAUGE -->
+    <div class="card">
+      <div class="card-title">
+        <span id="uiHealthScoreTitle">🌱 Crop Health Score</span>
+        <span id="healthStatusBadge" class="badge" style="background:#E8F5E9; color:#1B5E20;">Healthy</span>
+      </div>
+
+      <div class="gauge-container">
+        <div class="gauge-circle">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" stroke="#E0E0E0" />
+            <circle id="gaugeProgressCircle" cx="50" cy="50" r="40" stroke="#2E7D32" stroke-dasharray="251.2" stroke-dashoffset="50" />
+          </svg>
+          <div class="gauge-text">
+            <div class="gauge-number" id="healthScoreVal">78</div>
+            <div class="gauge-label">/ 100</div>
+          </div>
+        </div>
+
+        <div class="score-breakdown-grid">
+          <div class="score-item">
+            <span class="score-item-lbl">Healthy Ratio</span>
+            <span class="score-item-val" id="dispHealthyPct">75%</span>
+          </div>
+          <div class="score-item">
+            <span class="score-item-lbl">Disease Severity</span>
+            <span class="score-item-val" id="dispDisSev">Moderate</span>
+          </div>
+          <div class="score-item">
+            <span class="score-item-lbl">Pest Severity</span>
+            <span class="score-item-val" id="dispPestSev">Low</span>
+          </div>
+          <div class="score-item">
+            <span class="score-item-lbl">AI Confidence</span>
+            <span class="score-item-val" id="dispConfPct">88%</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:0.9rem; color:#2E7D32; background:#F1F8E9; padding:8px 12px; border-radius:8px;">
+        <strong>Main Reason Affecting Health:</strong> <span id="dispMainReason">Analyzing observed symptoms...</span>
+      </div>
+    </div>
+
+    <!-- CARD 2: 🦠 DISEASE & SEVERITY CLASSIFICATION -->
+    <div class="card">
+      <div class="card-title">
+        <span id="uiDiseaseTitle">🦠 Disease Diagnosis & Severity</span>
+        <span id="severityBadge" class="badge" style="background:#FFF3E0; color:#E65100;">MODERATE</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <div style="font-size:1.3rem; font-weight:900; color:#1B5E20;" id="reportDiseaseName">Early Blight (Alternaria solani)</div>
+          <div style="font-size:0.85rem; color:#666;" id="reportCropTypeMeta">Crop: Tomato • Type: Fungal Pathogen</div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn-tts" onclick="speakCurrentReport()">🔊 Speak Result</button>
+          <button type="button" class="btn-tts stop" onclick="stopSpeaking()">🔇 Stop</button>
+        </div>
+      </div>
+
+      <!-- High / Critical Severity Warning -->
+      <div id="expertConsultNotice" style="display:none; background:#FFEBEE; border:1.5px solid #FFCDD2; color:#C62828; padding:10px 12px; border-radius:8px; font-weight:700;">
+        ⚠️ Severe crop damage detected. Consider contacting an agriculture expert for confirmation before extensive spraying.
+      </div>
+
+      <div>
+        <div style="font-size:0.88rem; font-weight:700; color:#333;">Estimated Affected Canopy Area:</div>
+        <div style="font-size:1.1rem; font-weight:800; color:#E65100;" id="dispAffectedArea">~25% of lower leaves</div>
+      </div>
+
+      <div>
+        <div style="font-size:0.88rem; font-weight:700; color:#333;">Observed Symptoms:</div>
+        <div style="font-size:0.92rem; color:#444;" id="dispSymptoms">Concentric circular rings with yellow halos on lower leaves.</div>
+      </div>
+    </div>
+
+    <!-- CARD 3: 🐛 PEST IDENTIFICATION -->
+    <div class="card">
+      <div class="card-title">
+        <span id="uiPestTitle">🐛 Pest Identification</span>
+        <span id="pestStatusBadge" class="badge" style="background:#ECEFF1; color:#455A64;">None Detected</span>
+      </div>
+      <div>
+        <div style="font-size:1.1rem; font-weight:800; color:#37474F;" id="dispPestName">Unable to identify the pest confidently.</div>
+        <div style="font-size:0.82rem; color:#666;" id="dispPestCategory">Category: Sap-sucker / Caterpillar</div>
+      </div>
+      <div style="font-size:0.9rem; color:#444;">
+        <strong>Recommended Pest Control:</strong> <span id="dispPestMgmt">Scout lower leaf surfaces; install yellow sticky traps for early detection.</span>
+      </div>
+    </div>
+
+    <!-- CARD 4: 🧪 NUTRIENT DEFICIENCY DETECTION -->
+    <div class="card">
+      <div class="card-title">
+        <span id="uiNutrientTitle">🧪 Nutrient Deficiency Analysis</span>
+        <span id="nutrientStatusBadge" class="badge" style="background:#ECEFF1; color:#455A64;">Baseline</span>
+      </div>
+      <div>
+        <div style="font-size:1.05rem; font-weight:800; color:#37474F;" id="dispNutrientName">No acute nutrient deficiency observed.</div>
+        <div style="font-size:0.82rem; color:#666;" id="dispNutrientEvidence">Visual evidence: Normal green pigmentation across leaf veins.</div>
+      </div>
+      <div style="font-size:0.9rem; color:#555; background:#FFFDE7; padding:8px 10px; border-radius:6px;">
+        💡 <em>Possible nitrogen/potassium deficiency — confirm with soil/leaf testing.</em>
+      </div>
+    </div>
+
+    <!-- CARD 5: 💡 EXPLAINABLE AI ("Why did AI detect this?") -->
+    <div class="card">
+      <div class="card-title">
+        <span id="uiExplainTitle">💡 Why Did AI Detect This?</span>
+        <span class="badge" style="background:#E1F5FE; color:#0288D1;">Explainable AI</span>
+      </div>
+      <div style="font-size:0.85rem; color:#555;">
+        Visual indicators extracted directly from the uploaded photos:
+      </div>
+      <div id="explainEvidenceList" style="display:flex; flex-direction:column; gap:6px; font-size:0.92rem; color:#1B5E20;">
+        <div>✓ Circular brown target-board lesions visible on lower leaf lamina.</div>
+        <div>✓ Concentric chlorotic rings surrounding spots.</div>
+        <div>✓ Stem tissue clear with no vascular darkening.</div>
+      </div>
+    </div>
+
+    <!-- CARD 6: 🌦 WEATHER-BASED DISEASE RISK -->
+    <div class="card">
+      <div class="card-title">
+        <span id="uiWeatherRiskTitle">🌦 Weather-Based Disease Risk</span>
+        <span id="weatherRiskBadge" class="badge" style="background:#FFF3E0; color:#E65100;">MODERATE</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px;">
+        <div class="score-item">
+          <span class="score-item-lbl">Temperature</span>
+          <span class="score-item-val" id="dispWxTemp">28.4°C</span>
+        </div>
+        <div class="score-item">
+          <span class="score-item-lbl">Humidity</span>
+          <span class="score-item-val" id="dispWxHum">78%</span>
+        </div>
+        <div class="score-item">
+          <span class="score-item-lbl">Rainfall</span>
+          <span class="score-item-val" id="dispWxRain">0.0 mm</span>
+        </div>
+      </div>
+      <div style="font-size:0.88rem; color:#444;" id="dispWeatherRiskReason">
+        High relative humidity (>75%) coupled with moderate temperatures creates favorable environment for fungal spore dispersal.
+      </div>
+    </div>
+
+    <!-- CARD 7: 📋 SMART RECOMMENDATIONS (Immediate, Prevention, Monitoring, Expert) -->
+    <div class="card">
+      <div class="card-title">
+        <span id="uiRecsTitle">📋 Agronomic Action Plan</span>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="background:#E8F5E9; padding:10px; border-radius:8px; border-left:4px solid #2E7D32;">
+          <strong style="color:#1B5E20;">⚡ Immediate Action:</strong>
+          <div style="font-size:0.9rem; color:#333; margin-top:2px;" id="dispImmediateAction">Prune and safely destroy infected lower leaves; avoid overhead sprinkler watering.</div>
+        </div>
+
+        <div style="background:#F1F8E9; padding:10px; border-radius:8px; border-left:4px solid #558B2F;">
+          <strong style="color:#33691E;">🛡 Cultural Prevention:</strong>
+          <div style="font-size:0.9rem; color:#333; margin-top:2px;" id="dispPrevention">Practice crop rotation avoiding solanaceous crops for 2 seasons; ensure 45cm plant spacing.</div>
+        </div>
+
+        <div style="background:#E1F5FE; padding:10px; border-radius:8px; border-left:4px solid #0288D1;">
+          <strong style="color:#01579B;">👁 Monitoring Schedule:</strong>
+          <div style="font-size:0.9rem; color:#333; margin-top:2px;" id="dispMonitoring">Inspect field weekly after rain or morning dew; check underside of young leaves.</div>
+        </div>
+
+        <div style="background:#FFF3E0; padding:10px; border-radius:8px; border-left:4px solid #E65100;">
+          <strong style="color:#BF360C;">👨‍🌾 When to Contact an Expert:</strong>
+          <div style="font-size:0.9rem; color:#333; margin-top:2px;" id="dispWhenExpert">If more than 35% of canopy turns chlorotic or dark lesions spread to the fruit cluster.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD 8: 📄 SHARE DIAGNOSIS REPORT -->
+    <div class="card">
+      <div class="card-title">
+        <span id="uiShareTitle">📤 Share Professional Diagnosis</span>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn-primary" style="flex:1;" onclick="shareDiagnosisWeb()">
+          <span>📤 Share Report</span>
+        </button>
+        <button type="button" class="btn-secondary" onclick="shareDiagnosisWhatsApp()">
+          <span>💬 WhatsApp</span>
+        </button>
+        <button type="button" class="btn-secondary" onclick="copyReportClipboard()">
+          <span>📋 Copy</span>
+        </button>
+        <button type="button" class="btn-secondary" onclick="downloadReportTxt()">
+          <span>💾 Download</span>
+        </button>
+      </div>
+    </div>
+
+  </div> <!-- End Report Section -->
+
+  <!-- SECTION 9: CROP HEALTH TIMELINE -->
+  <div class="card" id="timelineCard">
+    <div class="card-title">
+      <span id="uiTimelineTitle">📊 Crop Health Timeline</span>
+      <span class="badge" style="background:#E8F5E9; color:#1B5E20;">Recent Progress</span>
+    </div>
+    <div class="timeline" id="timelineNodesList">
+      <!-- Injected from IndexedDB / History -->
+    </div>
+  </div>
+
+  <!-- SECTION 17: FARM ALERT ENGINE -->
+  <div class="card" id="alertsCard">
+    <div class="card-title">
+      <span id="uiAlertsTitle">🚨 Intelligent Farm Alerts</span>
+      <span id="activeAlertsBadge" class="badge" style="background:#FFEBEE; color:#C62828;">3 Active Alerts</span>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:6px;">
+      <button type="button" class="btn-tts" onclick="readAllAlertsAloud()">🔊 Read Alerts Aloud</button>
+      <button type="button" class="btn-tts stop" onclick="stopSpeaking()">🔇 Stop</button>
+    </div>
+    <div id="alertsList" style="display:flex; flex-direction:column; gap:10px;">
+      <!-- Alerts Injected Dynamically -->
+    </div>
+  </div>
+
+  <!-- SECTION 10 & 11: AGRICULTURE SUPPORT & EXPERT HELP -->
+  <div class="card" id="supportCard">
+    <div class="card-title">
+      <span id="uiSupportTitle">👨‍🌾 Agricultural Support & Verified Directory</span>
+    </div>
+    <div style="font-size:0.88rem; color:#555;">
+      Official Krishi Vigyan Kendras (KVKs), Soil Testing Labs, and Central Kisan Call Centre.
+    </div>
+
+    <!-- Quick Call Kisan Call Centre -->
+    <div style="background:#E8F5E9; border:1.5px solid #A5D6A7; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <strong>📞 Kisan Call Centre (Toll-Free)</strong>
+        <div style="font-size:0.8rem; color:#1B5E20;">6:00 AM - 10:00 PM • 22 Indian Languages</div>
+      </div>
+      <a href="tel:18001801551" class="btn-primary" style="text-decoration:none; padding:8px 14px; min-height:40px; font-size:0.9rem;">
+        Call 1800-180-1551
+      </a>
+    </div>
+
+    <!-- State Directory Filter -->
+    <div class="form-group" style="margin-top:6px;">
+      <label for="stateSupportSelect">Filter Institutes by State:</label>
+      <select id="stateSupportSelect" onchange="filterAgricultureCentres()">
+        <option value="">All States / National</option>
+        <option value="Tamil Nadu">Tamil Nadu</option>
+        <option value="Karnataka">Karnataka</option>
+        <option value="Andhra Pradesh">Andhra Pradesh / Telangana</option>
+        <option value="Maharashtra">Maharashtra</option>
+        <option value="West Bengal">West Bengal</option>
+        <option value="Uttar Pradesh">Uttar Pradesh</option>
+        <option value="Punjab">Punjab</option>
+        <option value="Kerala">Kerala</option>
+      </select>
+    </div>
+
+    <div id="centresList" style="display:flex; flex-direction:column; gap:10px;">
+      <!-- Verified Centres Injected Dynamically -->
+    </div>
+  </div>
+
+  <!-- SECTION 24: FARM LOCATION & MAP -->
+  <div class="card" id="mapCard">
+    <div class="card-title">
+      <span>📍 <span id="uiMapTitle">Farm Location & Risk Zones</span></span>
+      <button class="btn-tts" onclick="detectGPSLocation()">📡 GPS Pinpoint</button>
+    </div>
+    <div id="farmMap"></div>
+    <div id="locationMeta" style="font-size:0.82rem; color:var(--text-muted);">
+      Active Farm Coordinates: 11.0168° N, 76.9558° E (Coimbatore, Tamil Nadu)
+    </div>
+  </div>
+
+</div>
+
+<!-- Leaflet & App Engine Scripts -->
+<script>
+  /* =========================================================================
+     STATE & DATA MODELS
+     ========================================================================= */
+  let uploadedPhotos = []; // up to 5 photos: { file, dataUrl, partTag }
+  let currentReport = null;
+  let currentAIMode = "auto";
+  let db = null;
+  let mapInstance = null;
+  let farmMarker = null;
+  let isListening = false;
+  let speechRecognizer = null;
+
+  let currentFarm = {
+    name: "Green Acres Farm",
+    crop: "Tomato",
+    variety: "Arka Rakshak (Hybrid)",
+    location: "Coimbatore, Tamil Nadu",
+    area: "2.5 Acres",
+    lat: 11.0168,
+    lon: 76.9558,
+    healthScore: 78,
+    diseaseRisk: "MODERATE"
+  };
+
+  const VERIFIED_CENTRES = [
+    {
+      name: "Tamil Nadu Agricultural University (TNAU)",
+      state: "Tamil Nadu",
+      district: "Coimbatore",
+      type: "State Agricultural University",
+      phone: "0422-6611200",
+      services: "Crop Pathology Clinic, Soil Testing Lab, Bio-fertilizers"
+    },
+    {
+      name: "Krishi Vigyan Kendra (KVK Madurai)",
+      state: "Tamil Nadu",
+      district: "Madurai",
+      type: "ICAR Extension Center",
+      phone: "0452-2422955",
+      services: "Pest Diagnostic Advisory, Soil Health Card"
+    },
+    {
+      name: "University of Agricultural Sciences (UAS GKVK)",
+      state: "Karnataka",
+      district: "Bengaluru",
+      type: "State Agricultural University",
+      phone: "080-23330153",
+      services: "Plant Health Clinic, Seed Testing, Integrated Pest Advisory"
+    },
+    {
+      name: "Acharya N.G. Ranga Agricultural University (ANGRAU)",
+      state: "Andhra Pradesh",
+      district: "Guntur",
+      type: "State Agricultural University",
+      phone: "0863-2347101",
+      services: "Chilli & Cotton Disease Identification, Field Extension"
+    },
+    {
+      name: "College of Agriculture & KVK Baramati",
+      state: "Maharashtra",
+      district: "Pune",
+      type: "Krishi Vigyan Kendra",
+      phone: "02112-255227",
+      services: "Hi-Tech Pathology Lab, Soil Testing, Horticultural Consultancy"
+    },
+    {
+      name: "Bidhan Chandra Krishi Viswavidyalaya (BCKV)",
+      state: "West Bengal",
+      district: "Nadia",
+      type: "State Agricultural University",
+      phone: "03473-222269",
+      services: "Rice Blast & Blight Diagnostic Cell, Jute & Vegetable Pathology"
+    }
+  ];
+
+  /* =========================================================================
+     I18N LOCALIZATION DICTIONARY (8 Regional Languages)
+     ========================================================================= */
+  const I18N = {
+    "en-IN": {
+      subtitle: "AI-Powered Early Crop Disease & Pest Detection for Farmers",
+      langLabel: "🗣️ Select Language / மொழி / भाषा",
+      voiceTitle: "🎤 Voice Assistant",
+      voiceSubtitle: "Speak commands naturally: 'Check Tomato', 'Scan Leaf', 'Show Weather'",
+      startListening: "Start Listening",
+      farmDashTitle: "My Farm Dashboard",
+      healthScoreTitle: "🌱 Crop Health Score",
+      diseaseTitle: "🦠 Disease Diagnosis & Severity",
+      pestTitle: "🐛 Pest Identification",
+      nutrientTitle: "🧪 Nutrient Deficiency Analysis",
+      explainTitle: "💡 Why Did AI Detect This?",
+      weatherRiskTitle: "🌦 Weather-Based Disease Risk",
+      recsTitle: "📋 Agronomic Action Plan",
+      shareTitle: "📤 Share Professional Diagnosis",
+      timelineTitle: "📊 Crop Health Timeline",
+      alertsTitle: "🚨 Intelligent Farm Alerts",
+      supportTitle: "👨‍🌾 Agricultural Support & Verified Directory",
+      analyzeBtn: "🔬 Run AI Crop Diagnosis",
+      speakResult: "🔊 Speak Result"
+    },
+    "ta-IN": {
+      subtitle: "விவசாயிகளுக்கான ஆரம்பகால பயிர் நோய் மற்றும் பூச்சி கண்டறிதல் AI போர்டல்",
+      langLabel: "🗣️ மொழியைத் தேர்ந்தெடுக்கவும்",
+      voiceTitle: "🎤 குரல் உதவியாளர்",
+      voiceSubtitle: "இயல்பாகப் பேசுங்கள்: 'தக்காளி பரிசோதனை', 'வானிலை காட்டு', 'உதவி'",
+      startListening: "பேசத் தொடங்குங்கள்",
+      farmDashTitle: "எனது பண்ணை தகவல் பலகை",
+      healthScoreTitle: "🌱 பயிர் ஆரோக்கிய மதிப்பீடு",
+      diseaseTitle: "🦠 நோய் கண்டறிதல் & தீவிரம்",
+      pestTitle: "🐛 பூச்சி அடையாளம் காணுதல்",
+      nutrientTitle: "🧪 ஊட்டச்சத்து குறைபாடு பகுப்பாய்வு",
+      explainTitle: "💡 AI இதை எவ்வாறு கண்டறிந்தது?",
+      weatherRiskTitle: "🌦 வானிலை சார்ந்த நோய் அபாயம்",
+      recsTitle: "📋 விவசாய பரிந்துரை & செயல் திட்டம்",
+      shareTitle: "📤 தொழில்முறை அறிக்கையைப் பகிரவும்",
+      timelineTitle: "📊 பயிர் ஆரோக்கிய காலவரிசை",
+      alertsTitle: "🚨 புத்திசாலி பண்ணை எச்சரிக்கைகள்",
+      supportTitle: "👨‍🌾 வேளாண் ஆதரவு & அதிகாரப்பூர்வ மையங்கள்",
+      analyzeBtn: "🔬 AI பயிர் நோயைக் கண்டறி",
+      speakResult: "🔊 முடிவை வாசி"
+    },
+    "hi-IN": {
+      subtitle: "किसानों के लिए एआई-संचालित फसल रोग एवं कीट पहचान प्रणाली",
+      langLabel: "🗣️ भाषा का चयन करें",
+      voiceTitle: "🎤 आवाज़ सहायक",
+      voiceSubtitle: "स्वाभाविक रूप से बोलें: 'टमाटर जांचें', 'मौसम दिखाएं', 'मदद'",
+      startListening: "सुनना शुरू करें",
+      farmDashTitle: "मेरा खेत डैशबोर्ड",
+      healthScoreTitle: "🌱 फसल स्वास्थ्य स्कोर",
+      diseaseTitle: "🦠 रोग निदान एवं गंभीरता",
+      pestTitle: "🐛 कीट पहचान",
+      nutrientTitle: "🧪 पोषक तत्वों की कमी का विश्लेषण",
+      explainTitle: "💡 एआई ने यह कैसे पता लगाया?",
+      weatherRiskTitle: "🌦 मौसम-आधारित रोग जोखिम",
+      recsTitle: "📋 कृषि कार्य योजना एवं सलाह",
+      shareTitle: "📤 जांच रिपोर्ट साझा करें",
+      timelineTitle: "📊 फसल स्वास्थ्य समयरेखा",
+      alertsTitle: "🚨 स्मार्ट कृषि अलर्ट",
+      supportTitle: "👨‍🌾 कृषि सहायता एवं सत्यापित केंद्र",
+      analyzeBtn: "🔬 एआई फसल निदान चलाएं",
+      speakResult: "🔊 परिणाम सुनें"
+    },
+    "te-IN": {
+      subtitle: "రైతుల కోసం ప్రారంభ పంట తెగుళ్లు మరియు పురుగుల గుర్తింపు AI పోర్టల్",
+      langLabel: "🗣️ భాషను ఎంచుకోండి",
+      voiceTitle: "🎤 వాయిస్ అసిస్టెంట్",
+      voiceSubtitle: "సహజంగా మాట్లాడండి: 'టమోటా తనిఖీ చేయండి', 'వాతావరణం చూపించు'",
+      startListening: "వినడం ప్రారంభించండి",
+      farmDashTitle: "నా వ్యవసాయ డ్యాష్‌బోర్డ్",
+      healthScoreTitle: "🌱 పంట ఆరోగ్య స్కోరు",
+      diseaseTitle: "🦠 వ్యాధి నిర్ధారణ & తీవ్రత",
+      pestTitle: "🐛 పురుగుల గుర్తింపు",
+      nutrientTitle: "🧪 పోషకాల లోపం విశ్లేషణ",
+      explainTitle: "💡 AI దీన్ని ఎందుకు గుర్తించింది?",
+      weatherRiskTitle: "🌦 వాతావరణ ఆధారిత వ్యాధి ప్రమాదం",
+      recsTitle: "📋 వ్యవసాయ కార్యాచరణ ప్రణాళిక",
+      shareTitle: "📤 నివేదికను పంచుకోండి",
+      timelineTitle: "📊 పంట ఆరోగ్య కాలక్రమం",
+      alertsTitle: "🚨 తెలివైన వ్యవసాయ హెచ్చరికలు",
+      supportTitle: "👨‍🌾 వ్యవసాయ మద్దతు & కేంద్రాలు",
+      analyzeBtn: "🔬 AI పంట నిర్ధారణ అమలు చేయండి",
+      speakResult: "🔊 ఫలితాన్ని వినండి"
+    },
+    "kn-IN": {
+      subtitle: "ರೈತರಿಗಾಗಿ ಮುಂಚಿತ ಬೆಳೆ ರೋಗ ಮತ್ತು ಕೀಟ ಪತ್ತೆ ಎಐ ತಂತ್ರಜ್ಞಾನ",
+      langLabel: "🗣️ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+      voiceTitle: "🎤 ಧ್ವನಿ ಸಹಾಯಕ",
+      voiceSubtitle: "ಸಹಜವಾಗಿ ಮಾತನಾಡಿ: 'ಟೊಮೆಟೊ ಪರಿಶೀಲಿಸಿ', 'ಹವಾಮಾನ ತೋರಿಸಿ'",
+      startListening: "ಆಲಿಸಲು ಪ್ರಾರಂಭಿಸಿ",
+      farmDashTitle: "ನನ್ನ ಜಮೀನು ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+      healthScoreTitle: "🌱 ಬೆಳೆ ಆರೋಗ್ಯ ಸ್ಕೋರ್",
+      diseaseTitle: "🦠 ರೋಗ ನಿರ್ಣಯ & ತೀವ್ರತೆ",
+      pestTitle: "🐛 ಕೀಟ ಗುರುತಿಸುವಿಕೆ",
+      nutrientTitle: "🧪 ಪೋಷಕಾಂಶಗಳ ಕೊರತೆ ವಿಶ್ಲೇಷಣೆ",
+      explainTitle: "💡 AI ಇದನ್ನು ಹೇಗೆ ಗುರುತಿಸಿದೆ?",
+      weatherRiskTitle: "🌦 ಹವಾಮಾನ ಆಧಾರಿತ ರೋಗದ ಅಪಾಯ",
+      recsTitle: "📋 ಕೃಷಿ ಸಲಹಾ ಯೋಜನೆ",
+      shareTitle: "📤 ವರದಿಯನ್ನು ಹಂಚಿಕೊಳ್ಳಿ",
+      timelineTitle: "📊 ಬೆಳೆ ಆರೋಗ್ಯ ಟೈಮ್‌ಲೈನ್",
+      alertsTitle: "🚨 ಜಮೀನಿನ ಎಚ್ಚರಿಕೆಗಳು",
+      supportTitle: "👨‍🌾 ಕೃಷಿ ಬೆಂಬಲ & ಕೆವಿಕೆ ಕೇಂದ್ರಗಳು",
+      analyzeBtn: "🔬 AI ಬೆಳೆ ಪರೀಕ್ಷೆ ಪ್ರಾರಂಭಿಸಿ",
+      speakResult: "🔊 ಫಲಿತಾಂಶವನ್ನು ಆಲಿಸಿ"
+    },
+    "ml-IN": {
+      subtitle: "കർഷകർക്കായി AI അധിഷ്ഠിത വിള രോഗ-കീട നിരീക്ഷണ പോർട്ടൽ",
+      langLabel: "🗣️ ഭാഷ തിരഞ്ഞെടുക്കുക",
+      voiceTitle: "🎤 വോയ്‌സ് അസിസ്റ്റന്റ്",
+      voiceSubtitle: "സ്വാഭാവികമായി സംസാരിക്കുക: 'തക്കാളി പരിശോധിക്കുക', 'കാലാവസ്ഥ കാണിക്കുക'",
+      startListening: "ശ്രവിക്കാൻ ആരംഭിക്കുക",
+      farmDashTitle: "എന്റെ കൃഷിയിടം",
+      healthScoreTitle: "🌱 വിള ആരോഗ്യ സ്കോർ",
+      diseaseTitle: "🦠 രോഗ നിർണയം & തീവ്രത",
+      pestTitle: "🐛 കീട തിരിച്ചറിയൽ",
+      nutrientTitle: "🧪 പോഷകക്കുറവ് വിശകലനം",
+      explainTitle: "💡 AI ഇത് കണ്ടെത്തിയത് എങ്ങനെ?",
+      weatherRiskTitle: "🌦 കാലാവസ്ഥാധിഷ്ഠിത രോഗ സാധ്യത",
+      recsTitle: "📋 കാർഷിക ഉപദേശ പദ്ധതി",
+      shareTitle: "📤 റിപ്പോർട്ട് പങ്കിടുക",
+      timelineTitle: "📊 വിള ആരോഗ്യ ടൈംലൈൻ",
+      alertsTitle: "🚨 കാർഷിക മുന്നറിയിപ്പുകൾ",
+      supportTitle: "👨‍🌾 കൃഷി സഹായ കേന്ദ്രങ്ങൾ",
+      analyzeBtn: "🔬 AI രോഗനിർണയം നടത്തുക",
+      speakResult: "🔊 ഫലം കേൾക്കുക"
+    },
+    "bn-IN": {
+      subtitle: "কৃষকদের জন্য প্রাথমিক শস্য রোগ এবং পোকা সনাক্তকরণ এআই প্ল্যাটফর্ম",
+      langLabel: "🗣️ ভাষা নির্বাচন করুন",
+      voiceTitle: "🎤 ভয়েস সহকারী",
+      voiceSubtitle: "সহজভাবে বলুন: 'টমেটো পরীক্ষা করুন', 'আবহাওয়া দেখান'",
+      startListening: "শোনা শুরু করুন",
+      farmDashTitle: "আমার খামার ড্যাশবোর্ড",
+      healthScoreTitle: "🌱 ফসলের স্বাস্থ্য স্কোর",
+      diseaseTitle: "🦠 রোগ নির্ণয় ও তীব্রতা",
+      pestTitle: "🐛 কীটপতঙ্গ সনাক্তকরণ",
+      nutrientTitle: "🧪 পুষ্টির ঘাটতি বিশ্লেষণ",
+      explainTitle: "💡 এআই কীভাবে এটি চিহ্নিত করেছে?",
+      weatherRiskTitle: "🌦 আবহাওয়া-ভিত্তিক রোগের ঝুঁকি",
+      recsTitle: "📋 কৃষি কর্মপরিকল্পনা",
+      shareTitle: "📤 রিপোর্ট শেয়ার করুন",
+      timelineTitle: "📊 ফসলের স্বাস্থ্য টাইমলাইন",
+      alertsTitle: "🚨 খামার সতর্কতা",
+      supportTitle: "👨‍🌾 কৃষি সহায়তা ও গবেষণা কেন্দ্র",
+      analyzeBtn: "🔬 এআই ফসল বিশ্লেষণ চালান",
+      speakResult: "🔊 ফলাফল শুনুন"
+    },
+    "mr-IN": {
+      subtitle: "शेतकऱ्यांसाठी पीक रोग आणि कीड ओळख प्रणाली",
+      langLabel: "🗣️ भाषा निवडा",
+      voiceTitle: "🎤 व्हॉइस असिस्टंट",
+      voiceSubtitle: "नैसर्गिकपणे बोला: 'टोमॅटो तपासा', 'हवामान दाखवा', 'मदत'",
+      startListening: "ऐकणे सुरू करा",
+      farmDashTitle: "माझे शेत डॅशबोर्ड",
+      healthScoreTitle: "🌱 पीक आरोग्य स्कोअर",
+      diseaseTitle: "🦠 रोग निदान आणि तीव्रता",
+      pestTitle: "🐛 कीड ओळख",
+      nutrientTitle: "🧪 पोषक तत्वांची कमतरता विश्लेषण",
+      explainTitle: "💡 AI ने हे कसे शोधले?",
+      weatherRiskTitle: "🌦 हवामान आधारित रोग धोका",
+      recsTitle: "📋 कृषी सल्ला आणि कृती योजना",
+      shareTitle: "📤 तपासणी अहवाल पाठवा",
+      timelineTitle: "📊 पीक आरोग्य टाइमलाइन",
+      alertsTitle: "🚨 शेती सतर्कता इशारे",
+      supportTitle: "👨‍🌾 कृषी साहाय्य आणि केंद्र",
+      analyzeBtn: "🔬 AI पीक निदान सुरू करा",
+      speakResult: "🔊 निकाल ऐका"
+    }
+  };
+
+  /* =========================================================================
+     INITIALIZATION & LIFECYCLE
+     ========================================================================= */
+  window.addEventListener("DOMContentLoaded", () => {
+    initNetworkMonitor();
+    initIndexedDB();
+    initMap();
+    initMultiImageSlots();
+    checkBackendHealth();
+    loadFarmProfile();
+    renderVoiceChips("en-IN");
+    renderAlerts();
+    renderCentres();
+    renderTimelineNodes();
+  });
+
+  function initNetworkMonitor() {
+    const badge = document.getElementById("netSyncBadge");
+    function updateNet() {
+      if (navigator.onLine) {
+        badge.className = "net-sync-badge online";
+        badge.innerHTML = "<span>●</span> Online";
+      } else {
+        badge.className = "net-sync-badge offline";
+        badge.innerHTML = "<span>●</span> Offline (Local Mode)";
+      }
+    }
+    window.addEventListener("online", updateNet);
+    window.addEventListener("offline", updateNet);
+    updateNet();
+  }
+
+  /* =========================================================================
+     BACKEND HEALTH & MODEL MANAGEMENT (Section 14)
+     ========================================================================= */
+  async function checkBackendHealth() {
+    const apiUrl = document.getElementById("apiUrl").value.trim();
+    const statusText = document.getElementById("offlineModelStatusText");
+    const notice = document.getElementById("offlineModelNotice");
+
+    try {
+      const res = await fetch(`${apiUrl}/health`, { timeout: 5000 });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.offline_model) {
+          statusText.innerHTML = `<span style="color:#2E7D32; font-weight:700;">✓ Installed (${data.offline_model_type || "TFLite"})</span>`;
+          notice.textContent = "Offline local inference engine is ready. You can run diagnostics without internet.";
+        } else {
+          statusText.innerHTML = `<span style="color:#C62828; font-weight:700;">⚠ Model not installed</span>`;
+          notice.textContent = "Offline AI model is not connected yet. Install a compatible TensorFlow Lite or ONNX model to enable offline diagnosis.";
+        }
+      } else {
+        statusText.textContent = "Backend reachable, status pending.";
+      }
+    } catch (e) {
+      statusText.innerHTML = `<span style="color:#C62828;">⚠ Model status unavailable (Offline / Connecting)</span>`;
+      notice.textContent = "Offline AI model is not connected yet. Install a compatible TensorFlow Lite or ONNX model to enable offline diagnosis.";
+    }
+  }
+
+  function selectAIMode(mode) {
+    currentAIMode = mode;
+    document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("selected"));
+    if (mode === "auto") document.getElementById("modeBtnAuto").classList.add("selected");
+    if (mode === "online") document.getElementById("modeBtnOnline").classList.add("selected");
+    if (mode === "offline") document.getElementById("modeBtnOffline").classList.add("selected");
+  }
+
+  /* =========================================================================
+     MULTI-IMAGE MANAGEMENT (Up to 5 images) (Section 4)
+     ========================================================================= */
+  const PHOTO_TAGS = ["Leaf", "Stem", "Fruit", "Whole Plant", "Close-up"];
+
+  function initMultiImageSlots() {
+    renderMultiImageGrid();
+  }
+
+  function renderMultiImageGrid() {
+    const grid = document.getElementById("multiImageGrid");
+    grid.innerHTML = "";
+
+    uploadedPhotos.forEach((item, idx) => {
+      const slot = document.createElement("div");
+      slot.className = "image-slot";
+      slot.innerHTML = `
+        <img src="${item.dataUrl}" alt="Photo ${idx+1}" />
+        <button type="button" class="remove-btn" onclick="removePhoto(${idx})">✕</button>
+        <div class="slot-tag">${item.partTag}</div>
+      `;
+      grid.appendChild(slot);
+    });
+
+    if (uploadedPhotos.length < 5) {
+      const addSlot = document.createElement("div");
+      addSlot.className = "image-slot";
+      addSlot.onclick = triggerGalleryPicker;
+      addSlot.innerHTML = `
+        <div style="font-size:1.8rem; color:#A5D6A7;">+</div>
+        <div style="font-size:0.75rem; color:#2E7D32; font-weight:700;">Add Photo</div>
+      `;
+      grid.appendChild(addSlot);
+    }
+
+    const countNotice = document.getElementById("imageCountNotice");
+    countNotice.textContent = `${uploadedPhotos.length} of 5 photos selected. Combine leaf, stem, fruit, or plant views for maximum accuracy.`;
+  }
+
+  function triggerCameraCapture() {
+    if (uploadedPhotos.length >= 5) {
+      showAlert("warningAlert", "Maximum 5 photos allowed per diagnosis.");
+      return;
+    }
+    document.getElementById("cameraInput").click();
+  }
+
+  function triggerGalleryPicker() {
+    if (uploadedPhotos.length >= 5) {
+      showAlert("warningAlert", "Maximum 5 photos allowed per diagnosis.");
+      return;
+    }
+    document.getElementById("galleryInput").click();
+  }
+
+  function handleFileSelected(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      if (uploadedPhotos.length >= 5) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const defaultTag = PHOTO_TAGS[uploadedPhotos.length % PHOTO_TAGS.length];
+        uploadedPhotos.push({
+          file: file,
+          dataUrl: e.target.result,
+          partTag: defaultTag
+        });
+        renderMultiImageGrid();
+      };
+      reader.readAsDataURL(file);
+    });
+    event.target.value = "";
+  }
+
+  function removePhoto(idx) {
+    uploadedPhotos.splice(idx, 1);
+    renderMultiImageGrid();
+  }
+
+  /* =========================================================================
+     AI DIAGNOSIS PIPELINE (Section 1, 2, 3, 4, 5, 6, 7, 23)
+     ========================================================================= */
+  async function runDiagnosis() {
+    hideAlerts();
+    stopSpeaking();
+
+    const crop = document.getElementById("cropSelect").value;
+    const apiUrl = document.getElementById("apiUrl").value.trim();
+    const lang = document.getElementById("languageSelect").value;
+    const btn = document.getElementById("analyzeBtn");
+
+    if (!crop) {
+      showAlert("errorAlert", "⚠️ Please select a supported crop first.");
+      return;
+    }
+    if (uploadedPhotos.length === 0) {
+      showAlert("errorAlert", "📷 Please upload at least 1 crop photograph (leaf, stem, fruit, or whole plant).");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<span>⏳ Processing ${uploadedPhotos.length} photo(s)...</span>`;
+
+    try {
+      let data = null;
+
+      if (uploadedPhotos.length === 1) {
+        const formData = new FormData();
+        formData.append("image", uploadedPhotos[0].file);
+        formData.append("crop", crop);
+        formData.append("language", lang);
+        formData.append("mode", currentAIMode);
+        formData.append("latitude", currentFarm.lat);
+        formData.append("longitude", currentFarm.lon);
+
+        const res = await fetch(`${apiUrl}/predict`, { method: "POST", body: formData });
+        data = await res.json();
+      } else {
+        const formData = new FormData();
+        uploadedPhotos.forEach(p => formData.append("images", p.file));
+        formData.append("crop", crop);
+        formData.append("language", lang);
+        formData.append("mode", currentAIMode);
+        formData.append("latitude", currentFarm.lat);
+        formData.append("longitude", currentFarm.lon);
+
+        const res = await fetch(`${apiUrl}/analyze-multiple`, { method: "POST", body: formData });
+        data = await res.json();
+      }
+
+      if (!data.success) {
+        if (data.error_type === "NO_CROP") {
+          showAlert("errorAlert", "🚫 No supported crop was detected. Please upload a clear crop or leaf image.");
+        } else if (data.error_type === "CROP_MISMATCH") {
+          showAlert("warningAlert", `⚠️ ${data.message}`);
+        } else if (data.error_type === "OFFLINE_MODEL_UNAVAILABLE") {
+          showAlert("warningAlert", `📴 Offline AI model is not connected yet. Install a compatible TensorFlow Lite or ONNX model to enable offline diagnosis.`);
+        } else {
+          showAlert("errorAlert", `❌ Analysis error: ${data.message || "Could not complete diagnosis."}`);
+        }
+        return;
+      }
+
+      currentReport = data;
+      renderDiagnosticCards(data);
+      saveDiagnosisToDB(data);
+
+    } catch (err) {
+      if (!navigator.onLine) {
+        showAlert("errorAlert", "❌ Network lost and offline AI model is not installed. Reconnect or install offline weights.");
+      } else {
+        showAlert("errorAlert", `❌ Could not connect to backend server at ${apiUrl}. Verify backend is active.`);
+      }
+    } finally {
+      btn.disabled = false;
+      const t = I18N[lang] || I18N["en-IN"];
+      btn.innerHTML = `<span>${t.analyzeBtn}</span>`;
+    }
+  }
+
+  function renderDiagnosticCards(data) {
+    const reportSection = document.getElementById("reportSection");
+    reportSection.style.display = "flex";
+
+    // 1. Health Score Gauge
+    const score = data.health_score !== undefined ? data.health_score : 75;
+    document.getElementById("healthScoreVal").textContent = score;
+    const badge = document.getElementById("healthStatusBadge");
+    const circle = document.getElementById("gaugeProgressCircle");
+
+    // 251.2 is circumference for r=40
+    const offset = 251.2 - (251.2 * (score / 100));
+    circle.style.strokeDashoffset = offset;
+
+    if (score >= 80) {
+      badge.textContent = "Healthy";
+      badge.style.background = "#E8F5E9";
+      badge.style.color = "#1B5E20";
+      circle.style.stroke = "#2E7D32";
+    } else if (score >= 50) {
+      badge.textContent = "Moderate Risk";
+      badge.style.background = "#FFF3E0";
+      badge.style.color = "#E65100";
+      circle.style.stroke = "#F57F17";
+    } else {
+      badge.textContent = "High Risk / Critical";
+      badge.style.background = "#FFEBEE";
+      badge.style.color = "#C62828";
+      circle.style.stroke = "#C62828";
+    }
+
+    document.getElementById("dispHealthyPct").textContent = `${data.healthy_percentage || score}%`;
+    document.getElementById("dispDisSev").textContent = data.severity_localized || data.severity || "Moderate";
+    document.getElementById("dispPestSev").textContent = data.pest_details?.severity || "Low";
+    document.getElementById("dispConfPct").textContent = `${((data.confidence || 0.85) * 100).toFixed(0)}%`;
+    document.getElementById("dispMainReason").textContent = data.main_reason_affecting_health || "Foliage lesion symptoms reducing canopy photosynthesis.";
+
+    // 2. Disease Card
+    document.getElementById("reportDiseaseName").textContent = data.diagnosis || data.disease_or_pest || "Healthy Canopy";
+    document.getElementById("reportCropTypeMeta").textContent = `Crop: ${data.crop_localized || data.crop} • Category: ${data.category || "Foliage"}`;
+    document.getElementById("dispAffectedArea").textContent = `~${data.estimated_affected_area_pct || 20}% of foliage`;
+    document.getElementById("dispSymptoms").textContent = data.symptoms || "Concentric circular lesions detected.";
+
+    const sevBadge = document.getElementById("severityBadge");
+    const sev = (data.severity || "medium").toLowerCase();
+    sevBadge.textContent = (data.severity_localized || data.severity || "MODERATE").toUpperCase();
+
+    const expertNotice = document.getElementById("expertConsultNotice");
+    if (sev === "high" || sev === "critical" || data.expert_help_required) {
+      sevBadge.style.background = "#FFEBEE";
+      sevBadge.style.color = "#C62828";
+      expertNotice.style.display = "block";
+    } else {
+      sevBadge.style.background = "#FFF3E0";
+      sevBadge.style.color = "#E65100";
+      expertNotice.style.display = "none";
+    }
+
+    // 3. Pest Card
+    const pest = data.pest_details;
+    if (pest && pest.identified) {
+      document.getElementById("dispPestName").textContent = pest.name;
+      document.getElementById("dispPestCategory").textContent = `Category: ${pest.category} (Part: ${pest.affected_plant_part})`;
+      document.getElementById("dispPestMgmt").textContent = pest.recommended_management;
+      document.getElementById("pestStatusBadge").textContent = "Pest Identified";
+      document.getElementById("pestStatusBadge").style.background = "#FFF3E0";
+      document.getElementById("pestStatusBadge").style.color = "#E65100";
+    } else {
+      document.getElementById("dispPestName").textContent = "Unable to identify the pest confidently.";
+      document.getElementById("dispPestCategory").textContent = "No visible chewing or insect clusters.";
+      document.getElementById("dispPestMgmt").textContent = "Scout undersides of leaves weekly; deploy yellow sticky traps.";
+      document.getElementById("pestStatusBadge").textContent = "No Acute Pest";
+      document.getElementById("pestStatusBadge").style.background = "#ECEFF1";
+      document.getElementById("pestStatusBadge").style.color = "#455A64";
+    }
+
+    // 4. Nutrient Card
+    const nut = data.nutrient_deficiency;
+    if (nut && nut.detected) {
+      document.getElementById("dispNutrientName").textContent = `Possible ${nut.suspected_deficiency} deficiency — confirm with soil/leaf testing.`;
+      document.getElementById("dispNutrientEvidence").textContent = `Visual: ${nut.visual_evidence?.join(", ") || "Interveinal chlorosis observed."}`;
+      document.getElementById("nutrientStatusBadge").textContent = "Deficiency Suspected";
+      document.getElementById("nutrientStatusBadge").style.background = "#FFF3E0";
+      document.getElementById("nutrientStatusBadge").style.color = "#E65100";
+    } else {
+      document.getElementById("dispNutrientName").textContent = "No acute visual nutrient deficiency.";
+      document.getElementById("dispNutrientEvidence").textContent = "Visual evidence: Leaf vein pigmentation remains standard.";
+      document.getElementById("nutrientStatusBadge").textContent = "Balanced";
+      document.getElementById("nutrientStatusBadge").style.background = "#ECEFF1";
+      document.getElementById("nutrientStatusBadge").style.color = "#455A64";
+    }
+
+    // 5. Explainable AI Card
+    const explainBox = document.getElementById("explainEvidenceList");
+    explainBox.innerHTML = "";
+    const evidenceItems = data.visual_evidence || [
+      "✓ Characteristic lesion margins detected on foliage",
+      "✓ Chlorotic yellowing around symptomatic region",
+      "✓ Main stem tissue unaffected"
+    ];
+    evidenceItems.forEach(item => {
+      const div = document.createElement("div");
+      div.textContent = item.startsWith("✓") ? item : `✓ ${item}`;
+      explainBox.appendChild(div);
+    });
+
+    // 6. Weather Risk Card
+    const wx = data.weather_risk;
+    if (wx) {
+      document.getElementById("weatherRiskBadge").textContent = wx.level || "MODERATE";
+      document.getElementById("dispWeatherRiskReason").textContent = wx.reason || "Weather risk correlated with regional atmospheric humidity.";
+    }
+
+    // 7. Recommendations
+    document.getElementById("dispImmediateAction").textContent = data.immediate_action || "Prune symptomatic lower leaves; avoid overhead irrigation.";
+    const prev = Array.isArray(data.prevention) ? data.prevention.join(". ") : (data.prevention || "Maintain 3-year crop rotation avoiding solanaceous crops.");
+    document.getElementById("dispPrevention").textContent = prev;
+    document.getElementById("dispMonitoring").textContent = data.monitoring || "Inspect new flush weekly after rainfall or morning dew.";
+    document.getElementById("dispWhenExpert").textContent = data.when_to_contact_expert || "If more than 35% of foliage shows necrotic lesions.";
+
+    reportSection.scrollIntoView({ behavior: "smooth" });
+  }
+
+  /* =========================================================================
+     VOICE ASSISTANT (Section 19)
+     ========================================================================= */
+  function toggleVoiceAssistant() {
+    if (isListening) {
+      stopVoiceRecognition();
+    } else {
+      startVoiceRecognition();
+    }
+  }
+
+  function startVoiceRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showAlert("warningAlert", "Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    try {
+      speechRecognizer = new SpeechRecognition();
+      const lang = document.getElementById("languageSelect").value;
+      speechRecognizer.lang = lang;
+      speechRecognizer.continuous = false;
+      speechRecognizer.interimResults = false;
+
+      speechRecognizer.onstart = () => {
+        isListening = true;
+        document.getElementById("btnVoiceAssistant").classList.add("listening");
+        document.getElementById("uiVoiceBtnText").textContent = "Listening...";
+        document.getElementById("listeningIndicator").style.display = "inline";
+        document.getElementById("btnStopVoice").style.display = "inline-flex";
+        document.getElementById("transcriptText").textContent = '"Listening for command..."';
+      };
+
+      speechRecognizer.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        document.getElementById("transcriptText").textContent = `"${text}"`;
+        processVoiceCommand(text);
+      };
+
+      speechRecognizer.onerror = (e) => {
+        stopVoiceRecognition();
+        document.getElementById("voiceFeedback").textContent = "Could not detect clear speech. Please try again.";
+      };
+
+      speechRecognizer.onend = () => {
+        stopVoiceRecognition();
+      };
+
+      speechRecognizer.start();
+    } catch (e) {
+      stopVoiceRecognition();
+    }
+  }
+
+  function stopVoiceRecognition() {
+    isListening = false;
+    if (speechRecognizer) {
+      try { speechRecognizer.stop(); } catch(e) {}
+    }
+    const btn = document.getElementById("btnVoiceAssistant");
+    if (btn) {
+      btn.classList.remove("listening");
+      btn.querySelector("#uiVoiceBtnText").textContent = "Start Listening";
+    }
+    document.getElementById("listeningIndicator").style.display = "none";
+    document.getElementById("btnStopVoice").style.display = "none";
+  }
+
+  function processVoiceCommand(text) {
+    const clean = text.toLowerCase();
+    const fb = document.getElementById("voiceFeedback");
+
+    if (clean.includes("tomato") || clean.includes("தக்காளி") || clean.includes("टमाटर")) {
+      document.getElementById("cropSelect").value = "Tomato";
+      onCropSelected();
+      fb.textContent = "Selected: Tomato 🍅";
+    } else if (clean.includes("potato") || clean.includes("உருளை") || clean.includes("आलू")) {
+      document.getElementById("cropSelect").value = "Potato";
+      onCropSelected();
+      fb.textContent = "Selected: Potato 🥔";
+    } else if (clean.includes("rice") || clean.includes("நெல்") || clean.includes("चावल")) {
+      document.getElementById("cropSelect").value = "Rice";
+      onCropSelected();
+      fb.textContent = "Selected: Rice 🌾";
+    } else if (clean.includes("weather") || clean.includes("வானிலை") || clean.includes("मौसम")) {
+      document.getElementById("mapCard").scrollIntoView({ behavior: "smooth" });
+      fb.textContent = "Navigated to Weather & Farm Map 🌦";
+    } else if (clean.includes("alert") || clean.includes("எச்சரிக்கை") || clean.includes("चेतावनी")) {
+      document.getElementById("alertsCard").scrollIntoView({ behavior: "smooth" });
+      fb.textContent = "Showing Farm Alerts 🚨";
+    } else if (clean.includes("speak") || clean.includes("வாசி") || clean.includes("सुनाओ")) {
+      speakCurrentReport();
+      fb.textContent = "Reading diagnosis result aloud 🔊";
+    } else if (clean.includes("scan") || clean.includes("diagnose") || clean.includes("பரிசோதனை") || clean.includes("जांच")) {
+      runDiagnosis();
+      fb.textContent = "Running AI Crop Diagnosis 🔬";
+    } else {
+      fb.textContent = `Processed: "${text}"`;
+    }
+  }
+
+  function renderVoiceChips(lang) {
+    const row = document.getElementById("voiceChipsRow");
+    row.innerHTML = "";
+    const chipsMap = {
+      "en-IN": ["Scan Tomato", "Check Weather", "Read Alerts", "Ask Expert"],
+      "ta-IN": ["தக்காளி பரிசோதனை", "வானிலை காட்டு", "எச்சரிக்கைகள்", "நிபுணர் உதவி"],
+      "hi-IN": ["टमाटर जांचें", "मौसम दिखाएं", "अलर्ट पढ़ें", "विशेषज्ञ सलाह"],
+      "te-IN": ["టమోటా తనిఖీ", "వాతావరణం", "హెచ్చరికలు", "నిపుణుల సహాయం"],
+      "kn-IN": ["ಟೊಮೆಟೊ ಪರೀಕ್ಷೆ", "ಹವಾಮಾನ", "ಎಚ್ಚರಿಕೆಗಳು", "ತಜ್ಞರ ಸಲಹೆ"],
+      "ml-IN": ["തക്കാളി പരിശോധന", "കാലാവസ്ഥ", "മുന്നറിയിപ്പുകൾ", "സഹായം"],
+      "bn-IN": ["টমেটো পরীক্ষা", "আবহাওয়া", "সতর্কতা", "বিশেষজ্ঞ সাহায্য"],
+      "mr-IN": ["टोमॅटो तपासा", "हवामान", "इशारे वाचा", "तज्ज्ञ सल्ला"]
+    };
+    const list = chipsMap[lang] || chipsMap["en-IN"];
+    list.forEach(item => {
+      const chip = document.createElement("div");
+      chip.className = "voice-chip";
+      chip.textContent = item;
+      chip.onclick = () => {
+        document.getElementById("transcriptText").textContent = `"${item}"`;
+        processVoiceCommand(item);
+      };
+      row.appendChild(chip);
+    });
+  }
+
+  /* =========================================================================
+     TEXT-TO-SPEECH (TTS) (Section 19)
+     ========================================================================= */
+  function speakCurrentReport() {
+    if (!currentReport) {
+      speakUtterance("No diagnosis report is currently available to speak.", "en-IN");
+      return;
+    }
+    const lang = document.getElementById("languageSelect").value;
+    const crop = currentReport.crop_localized || currentReport.crop;
+    const diag = currentReport.diagnosis || currentReport.disease_or_pest;
+    const sev = currentReport.severity_localized || currentReport.severity;
+    const score = currentReport.health_score || 75;
+    const action = currentReport.immediate_action || currentReport.recommendation;
+
+    const speech = `${crop}. ${diag}. Health score: ${score} out of 100. Severity: ${sev}. Immediate action: ${action}`;
+    speakUtterance(speech, lang);
+  }
+
+  function readAllAlertsAloud() {
+    const lang = document.getElementById("languageSelect").value;
+    const text = "Warning: Disease risk is increasing due to morning humidity over 80 percent. Pest advisory: Whitefly scouting recommended in neighbouring fields. Rain forecast in 48 hours.";
+    speakUtterance(text, lang);
+  }
+
+  function speakUtterance(text, lang) {
+    if (!window.speechSynthesis) return;
+    stopSpeaking();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    utterance.rate = 0.92;
+
+    const voices = window.speechSynthesis.getVoices();
+    const voice = voices.find(v => v.lang === lang || v.lang.startsWith(lang.split("-")[0]));
+    if (voice) utterance.voice = voice;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function stopSpeaking() {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  /* =========================================================================
+     SHARE & EXPORT REPORT (Section 12)
+     ========================================================================= */
+  function buildReportText() {
+    if (!currentReport) return "";
+    const date = new Date().toLocaleString();
+    const crop = currentReport.crop_localized || currentReport.crop;
+    const diag = currentReport.diagnosis || currentReport.disease_or_pest;
+    const score = currentReport.health_score || 75;
+    const sev = currentReport.severity_localized || currentReport.severity;
+    const conf = ((currentReport.confidence || 0.85) * 100).toFixed(0);
+
+    return `🌾 *CROPGuard AI - Diagnosis Report*
+📅 Date: ${date}
+📍 Farm: ${currentFarm.name} (${currentFarm.location})
+🌱 Crop: ${crop}
+🔬 Diagnosis: ${diag}
+📊 Health Score: ${score}/100 | Severity: ${sev} (Conf: ${conf}%)
+⚡ Immediate Action: ${currentReport.immediate_action || "Maintain balanced field irrigation."}
+🛡 Prevention: ${currentReport.prevention || "Standard crop rotation."}
+👨‍🌾 Kisan Helpline: 1800-180-1551
+
+Generated via CropGuard AI Agricultural Portal`;
+  }
+
+  async function shareDiagnosisWeb() {
+    if (!currentReport) return;
+    const text = buildReportText();
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `CropGuard: ${currentReport.crop} Diagnosis`, text: text });
+        showAlert("infoAlert", "✅ Report shared successfully.");
+        return;
+      } catch (e) {}
+    }
+    copyReportClipboard();
+  }
+
+  function shareDiagnosisWhatsApp() {
+    if (!currentReport) return;
+    const text = buildReportText();
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+  }
+
+  function copyReportClipboard() {
+    if (!currentReport) return;
+    const text = buildReportText();
+    navigator.clipboard.writeText(text).then(() => {
+      showAlert("infoAlert", "📋 Diagnosis report copied to clipboard!");
+    });
+  }
+
+  function downloadReportTxt() {
+    if (!currentReport) return;
+    const text = buildReportText();
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `cropguard_${currentReport.crop}_diagnosis.txt`;
+    link.click();
+  }
+
+  /* =========================================================================
+     FARM DASHBOARD & TIMELINE (Section 8 & 9)
+     ========================================================================= */
+  function toggleFarmEdit() {
+    const form = document.getElementById("farmEditForm");
+    form.style.display = form.style.display === "none" ? "block" : "none";
+  }
+
+  function saveFarmDetails() {
+    currentFarm.name = document.getElementById("editFarmName").value.trim() || currentFarm.name;
+    currentFarm.variety = document.getElementById("editFarmVariety").value.trim() || currentFarm.variety;
+    currentFarm.location = document.getElementById("editFarmLocation").value.trim() || currentFarm.location;
+    currentFarm.area = document.getElementById("editFarmArea").value.trim() || currentFarm.area;
+
+    document.getElementById("dispFarmName").textContent = currentFarm.name;
+    document.getElementById("dispFarmCrop").textContent = `${currentFarm.crop} (${currentFarm.variety})`;
+    document.getElementById("dispFarmLoc").textContent = `${currentFarm.location} • ${currentFarm.area}`;
+
+    localStorage.setItem("cropguard_farm", JSON.stringify(currentFarm));
+    toggleFarmEdit();
+    showAlert("infoAlert", "✅ Farm profile updated locally.");
+  }
+
+  function loadFarmProfile() {
+    const saved = localStorage.getItem("cropguard_farm");
+    if (saved) {
+      try {
+        currentFarm = JSON.parse(saved);
+        document.getElementById("dispFarmName").textContent = currentFarm.name;
+        document.getElementById("dispFarmCrop").textContent = `${currentFarm.crop} (${currentFarm.variety})`;
+        document.getElementById("dispFarmLoc").textContent = `${currentFarm.location} • ${currentFarm.area}`;
+      } catch(e) {}
+    }
+  }
+
+  function onCropSelected() {
+    const crop = document.getElementById("cropSelect").value;
+    currentFarm.crop = crop;
+    document.getElementById("dispFarmCrop").textContent = `${crop} (${currentFarm.variety})`;
+  }
+
+  /* =========================================================================
+     INDEXEDDB & TIMELINE (Section 9)
+     ========================================================================= */
+  function initIndexedDB() {
+    const req = indexedDB.open("CropGuardAI_DB", 2);
+    req.onupgradeneeded = (e) => {
+      db = e.target.result;
+      if (!db.objectStoreNames.contains("timeline")) {
+        const store = db.createObjectStore("timeline", { keyPath: "id", autoIncrement: true });
+        store.createIndex("timestamp", "timestamp", { unique: false });
+      }
+    };
+    req.onsuccess = (e) => {
+      db = e.target.result;
+      loadTimelineFromDB();
+    };
+  }
+
+  function saveDiagnosisToDB(data) {
+    if (!db) return;
+    const record = {
+      timestamp: new Date().toISOString(),
+      dateStr: new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
+      crop: data.crop_localized || data.crop,
+      diagnosis: data.diagnosis || data.disease_or_pest,
+      healthScore: data.health_score || 75,
+      severity: data.severity_localized || data.severity,
+      action: data.immediate_action || "Pruned lower leaves."
+    };
+
+    const tx = db.transaction(["timeline"], "readwrite");
+    tx.objectStore("timeline").add(record);
+    tx.oncomplete = () => loadTimelineFromDB();
+  }
+
+  function loadTimelineFromDB() {
+    if (!db) return;
+    const tx = db.transaction(["timeline"], "readonly");
+    const req = tx.objectStore("timeline").getAll();
+    req.onsuccess = () => {
+      const records = req.result || [];
+      if (records.length > 0) {
+        renderTimelineNodes(records.reverse().slice(0, 5));
+      } else {
+        renderTimelineNodes();
+      }
+    };
+  }
+
+  function renderTimelineNodes(records) {
+    const container = document.getElementById("timelineNodesList");
+    container.innerHTML = "";
+
+    const defaultTimeline = [
+      { dateStr: "15 Aug", healthScore: 92, crop: "Tomato", diagnosis: "Healthy Canopy", action: "Applied organic bio-fertilizer." },
+      { dateStr: "28 Aug", healthScore: 85, crop: "Tomato", diagnosis: "Minor Chlorosis", action: "Micronutrient foliar spray applied." },
+      { dateStr: "10 Sep", healthScore: 74, crop: "Tomato", diagnosis: "Early Blight (Alternaria)", action: "Pruned lower leaves; sprayed copper oxychloride." }
+    ];
+
+    const list = records || defaultTimeline;
+    list.forEach(node => {
+      const div = document.createElement("div");
+      div.className = "timeline-node";
+      div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#666;">
+          <strong>📅 ${node.dateStr}</strong>
+          <span class="badge" style="background:#E8F5E9; color:#1B5E20;">Score: ${node.healthScore}/100</span>
+        </div>
+        <div style="font-weight:700; color:#1B5E20; font-size:0.95rem;">${node.crop}: ${node.diagnosis}</div>
+        <div style="font-size:0.82rem; color:#555;">Action: ${node.action}</div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  /* =========================================================================
+     ALERTS ENGINE (Section 17)
+     ========================================================================= */
+  function renderAlerts() {
+    const list = document.getElementById("alertsList");
+    const alerts = [
+      {
+        title: "⚠ Disease Risk Increasing",
+        text: "Relative humidity (>82%) and warm temperature elevate fungal spore spread for Tomato and Chilli.",
+        urgency: "warning",
+        date: "Today"
+      },
+      {
+        title: "🐛 Whitefly Scouting Warning",
+        text: "Regional extension reports Whitefly activity in neighboring blocks. Inspect under leaf surfaces.",
+        urgency: "info",
+        date: "Yesterday"
+      },
+      {
+        title: "🌧 Rain In Forecast (48h)",
+        text: "Scattered rain expected. Postpone contact foliar sprays to avoid active wash-off.",
+        urgency: "warning",
+        date: "2 days ago"
+      }
+    ];
+
+    list.innerHTML = "";
+    alerts.forEach((a, idx) => {
+      const div = document.createElement("div");
+      div.style.cssText = "background:white; border:1px solid #E0E0E0; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;";
+      div.innerHTML = `
+        <div>
+          <strong style="color:${a.urgency === 'warning' ? '#E65100' : '#0288D1'};">${a.title}</strong>
+          <div style="font-size:0.85rem; color:#444; margin-top:2px;">${a.text}</div>
+          <div style="font-size:0.75rem; color:#888; margin-top:4px;">${a.date}</div>
+        </div>
+        <button class="btn-tts" style="padding:4px 8px; min-height:30px; font-size:0.75rem;" onclick="dismissAlert(${idx})">Dismiss</button>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  function dismissAlert(idx) {
+    showAlert("infoAlert", "Alert dismissed.");
+    renderAlerts();
+  }
+
+  /* =========================================================================
+     AGRICULTURE DIRECTORY (Section 10)
+     ========================================================================= */
+  function renderCentres(filterState = "") {
+    const list = document.getElementById("centresList");
+    list.innerHTML = "";
+
+    const filtered = VERIFIED_CENTRES.filter(c => !filterState || c.state.toLowerCase() === filterState.toLowerCase());
+
+    filtered.forEach(c => {
+      const div = document.createElement("div");
+      div.className = "support-card-item";
+      div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong style="color:#1B5E20;">${c.name}</strong>
+          <span class="badge" style="background:#E8F5E9; color:#1B5E20; font-size:0.75rem;">${c.district}</span>
+        </div>
+        <div style="font-size:0.8rem; color:#555;">${c.type} • Services: ${c.services}</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+          <span style="font-size:0.82rem; font-weight:700;">📞 ${c.phone}</span>
+          <a href="tel:${c.phone}" class="btn-tts" style="text-decoration:none; padding:4px 10px; min-height:32px; font-size:0.8rem;">Call Centre</a>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  function filterAgricultureCentres() {
+    const st = document.getElementById("stateSupportSelect").value;
+    renderCentres(st);
+  }
+
+  /* =========================================================================
+     MAP & GPS (Section 24)
+     ========================================================================= */
+  function initMap() {
+    if (typeof L === "undefined") return;
+    mapInstance = L.map("farmMap").setView([currentFarm.lat, currentFarm.lon], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "© OpenStreetMap contributors"
+    }).addTo(mapInstance);
+
+    farmMarker = L.marker([currentFarm.lat, currentFarm.lon]).addTo(mapInstance)
+      .bindPopup(`<b>${currentFarm.name}</b><br/>Primary Crop: ${currentFarm.crop}`).openPopup();
+  }
+
+  function detectGPSLocation() {
+    if (!navigator.geolocation) {
+      showAlert("warningAlert", "Geolocation is not supported by your browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        currentFarm.lat = pos.coords.latitude;
+        currentFarm.lon = pos.coords.longitude;
+        if (mapInstance && farmMarker) {
+          mapInstance.setView([currentFarm.lat, currentFarm.lon], 14);
+          farmMarker.setLatLng([currentFarm.lat, currentFarm.lon])
+            .setPopupContent(`<b>${currentFarm.name}</b><br/>GPS Located Farm`).openPopup();
+        }
+        document.getElementById("locationMeta").textContent = 
+          `Active Farm Coordinates: ${currentFarm.lat.toFixed(4)}° N, ${currentFarm.lon.toFixed(4)}° E`;
+        showAlert("infoAlert", "📍 Farm coordinates updated via GPS.");
+      },
+      (err) => {
+        showAlert("warningAlert", "Could not retrieve GPS coordinates. Check location permissions.");
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }
+
+  /* =========================================================================
+     LANGUAGE SWITCHER (Section 18)
+     ========================================================================= */
+  function onLanguageChanged() {
+    const lang = document.getElementById("languageSelect").value;
+    const t = I18N[lang] || I18N["en-IN"];
+
+    document.getElementById("uiSubtitle").textContent = t.subtitle;
+    document.getElementById("uiLangLabel").textContent = t.langLabel;
+    document.getElementById("uiVoiceTitle").textContent = t.voiceTitle;
+    document.getElementById("uiVoiceSubtitle").textContent = t.voiceSubtitle;
+    document.getElementById("uiVoiceBtnText").textContent = t.startListening;
+    document.getElementById("uiFarmDashTitle").textContent = t.farmDashTitle;
+    document.getElementById("uiHealthScoreTitle").textContent = t.healthScoreTitle;
+    document.getElementById("uiDiseaseTitle").textContent = t.diseaseTitle;
+    document.getElementById("uiPestTitle").textContent = t.pestTitle;
+    document.getElementById("uiNutrientTitle").textContent = t.nutrientTitle;
+    document.getElementById("uiExplainTitle").textContent = t.explainTitle;
+    document.getElementById("uiWeatherRiskTitle").textContent = t.weatherRiskTitle;
+    document.getElementById("uiRecsTitle").textContent = t.recsTitle;
+    document.getElementById("uiShareTitle").textContent = t.shareTitle;
+    document.getElementById("uiTimelineTitle").textContent = t.timelineTitle;
+    document.getElementById("uiAlertsTitle").textContent = t.alertsTitle;
+    document.getElementById("uiSupportTitle").textContent = t.supportTitle;
+    document.getElementById("uiAnalyzeBtnText").textContent = t.analyzeBtn;
+    document.getElementById("uiVoiceSpeakResult").textContent = t.speakResult;
+
+    renderVoiceChips(lang);
+  }
+
+  /* =========================================================================
+     ALERTS & UTILITIES
+     ========================================================================= */
+  function showAlert(id, msg) {
+    hideAlerts();
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerHTML = msg;
+      el.style.display = "block";
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
+  function hideAlerts() {
+    ["errorAlert", "warningAlert", "infoAlert"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
+  }
+</script>
+
+</body>
+</html>

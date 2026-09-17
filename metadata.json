@@ -1,0 +1,10 @@
+{
+  "name": "CropGuard AI",
+  "description": "AI-powered crop disease and pest detection system helping farmers protect yields with real-time field risk mapping, weather insights, and early alerts.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
